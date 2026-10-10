@@ -1,89 +1,37 @@
 # TinyWins
 
-TinyWins turns an overwhelming task into exactly three realistic next steps, tailored to the time and energy you have. Use **Make it smaller** to break any step into an easier first action.
+TinyWins is a browser-only micro-productivity planner. Describe one task, choose your available time and energy, and it creates a deterministic, rule-based set of small next actions. Check off progress, say when a step did not help, or ask for a smaller first move.
 
-## Requirements
+Plans are generated locally in TypeScript. TinyWins does not call an AI service or any other planning API, and it does not save personal information or learn across sessions.
 
-- Node.js 20.19+ (or 22.12+) and npm
-- Python 3.10+
-- An AWS account with access to the configured Amazon Bedrock model to generate plans
+## Run locally
 
-The frontend and API start locally without AWS credentials, but requesting a plan requires working Bedrock access. The app does not use fake responses when AWS is unavailable.
-
-## Start the backend
-
-From the project root, create a virtual environment and install backend dependencies:
-
-```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r backend\requirements.txt
-```
-
-The backend reads these non-secret configuration variables from `backend/.env`:
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `AWS_REGION` | `us-east-1` | AWS region used for Bedrock requests |
-| `BEDROCK_MODEL_ID` | `anthropic.claude-3-haiku-20240307-v1:0` | Bedrock model identifier |
-
-Create your local config from the template:
-
-```powershell
-Copy-Item backend\.env.example backend\.env
-```
-
-Edit `backend/.env` only if you need to change the defaults. `.env` is ignored by git; `.env.example` contains configuration defaults only, not credentials.
-
-Configure AWS credentials separately through the AWS CLI, IAM Identity Center, environment, or another supported boto3 credential provider. For a named AWS CLI profile, set `AWS_PROFILE` in the backend process environment (for example, `$env:AWS_PROFILE = "my-profile"` in PowerShell). Never put AWS credentials in `.env`, the frontend, or source control. Confirm that the model is enabled for your account in the selected region.
-
-Run the API from the project root:
-
-```powershell
-python -m uvicorn app.main:app --app-dir backend --reload --host 127.0.0.1 --port 8000
-```
-
-The equivalent command from inside `backend\` is:
-
-```powershell
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-The FastAPI instance is `app` in `backend\app\main.py`. `main:app` expects a `main.py` module in the current import path, and `app:app` expects the package's `__init__.py` to export an `app`; neither is the entry point here.
-
-Health check: <http://localhost:8000/api/health>. Interactive API docs: <http://localhost:8000/docs>.
-
-## Start the frontend
-
-In another terminal:
+Requirements: Node.js 20.19+ (or 22.12+) and npm.
 
 ```powershell
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite (usually <http://localhost:5173>). Vite proxies `/api` requests to the backend on port 8000.
+Open the local URL printed by Vite (usually <http://localhost:5173>). No backend, Python environment, API key, AWS account, or `.env` file is needed to use the app.
 
-## Tests and production build
-
-From the project root, with the backend dependencies installed:
-
-```powershell
-python -m pytest backend\tests -q
-```
-
-The tests mock the Bedrock boundary and do not need AWS credentials. To build the frontend:
+Create and check a production build:
 
 ```powershell
 cd frontend
 npm run build
+npm run preview
 ```
 
-## API
+## Deploy to AWS Amplify
 
-- `GET /api/health` — local service health.
-- `POST /api/plan` — accepts `{ "task": "...", "available_minutes": 20, "energy": "Medium" }`; returns exactly three steps.
-- `POST /api/steps/smaller` — accepts the task, one selected step, and energy; returns a smaller step.
+The root `amplify.yml` configures the existing `frontend` directory as the Amplify app root. Connect this repository to Amplify and use the `main` branch (or your chosen branch). For Amplify monorepo detection, set the app build environment variable `AMPLIFY_MONOREPO_APP_ROOT` to `frontend` if Amplify asks for it. The build runs `npm ci` and `npm run build`, then publishes `frontend/dist`.
 
-Both AI endpoints use Amazon Bedrock's Converse API. `AWS_REGION` and `BEDROCK_MODEL_ID` can be overridden in the backend environment.
+There are no deployment-time environment variables, AWS credentials, backend services, or paid APIs needed by the application.
+
+## How the planner adapts
+
+`frontend/src/planner.ts` contains the reusable planning rules. It chooses task-specific action templates (study, interview preparation, tidying, projects, or a general task), scales the number and size of actions based on selected time and energy, and offers a smaller action based on the remaining time, energy, unfinished step, and “Not yet” feedback. “Try another plan” selects a different deterministic ordering; the same inputs and variation always produce the same plan.
+
+The old `backend/` FastAPI/Bedrock files are retained in the repository but are not used by the frontend or Amplify build. No planning request is sent to them.
