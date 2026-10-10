@@ -1,0 +1,56 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+**/.aws/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Python
+.venv/
+venv/
+.tox/
+.nox/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# JavaScript
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+.npm/
+*.tsbuildinfo
+/package-lock.json
+/frontend/vite.config.js
+/frontend/vite.config.d.ts
+
+# Editors and operating systems
+.vscode/
+.idea/
+.history/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
